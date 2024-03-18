@@ -23,7 +23,7 @@ app.secret_key = "5#v:O(TMlwMv17sPT6Hh-.b+U}80jGt~MWEJnBWg8a/~.7QdXWO%`P5cYgCk-c
 window = webview.create_window("Quad Binary Wealth AI", app)
 
 login_manager = LoginManager()
-login_required.init_app(app)
+login_manager.init_app(app)
 
 cred = credentials.Certificate(os.path.join(os.path.dirname(__file__),'db.json'))
 firebase_admin.initialize_app(cred)
@@ -161,7 +161,7 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             return "Invalid OTP"
-    return render_template('login.html', access)
+    return render_template('login.html', access=access)
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -196,4 +196,5 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-
+if __name__ == "__main__":
+    app.run(debug=True)

@@ -39,3 +39,47 @@ class User(UserMixin):
 def load_user(user_id):
     return User(user_id)
 
+
+def totp_verify(otp, totp_secret):
+    totp = pyotp.TOTP(totp_secret)
+    return totp.verify(otp)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        password_confirm = request.form['repeated_password']
+        bank_balance = float(request.form['bank_balance'])
+
+        pass64 = base64.b64encode(password.encode("utf-8"))
+
+        totp_secret = pyotp.random_base32()
+
+        if password == password_confirm:
+            if db.collection("users").document(username).get().exists:
+                return "Username Already Exists, Please Choose a Different Username"
+            
+            user_ref = db.collection("users").document(username)
+            user_ref.set({
+                'username': username,
+                'email': email,
+                'password': pass64,
+                'bank_balance': bank_balance
+                'totp_secret': totp_secret
+            })
+
+            send_email(username, email, password, totp_secret)
+
+            return redirect(url_for('index'))
+        else:
+            return "Passwords Do Not Match, Please Try Again"
+        
+    return render_template('register.html')
+    

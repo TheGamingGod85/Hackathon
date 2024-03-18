@@ -28,3 +28,14 @@ cred = credentials.Certificate(os.path.join(os.path.dirname(__file__),'db.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+
+
+class User(UserMixin):
+    def __init__(self, user_id):
+        self.id = user_id
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
+

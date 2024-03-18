@@ -83,3 +83,23 @@ def register():
         
     return render_template('register.html')
     
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        pass64 = base64.b64encode(password.encode('utf-8'))
+
+        user_ref = db.collection('users').document(username)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists or user_doc.to_dict()['password'] != pass64:
+            return "Invalid username or password"
+        
+        totp_secret = user_doc.to_dict()['totp_secret']
+
+        if totp_verify(request.form['totp'], totp_secret):
+            user = User(user_id=username)
+            login_user(user)
+            return redirect(url_for('dashboard'))

@@ -28,7 +28,26 @@ cred = credentials.Certificate(os.path.join(os.path.dirname(__file__),'db.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+def add_record(user_id, bill_name, due_date, amount):
+    if datetime.strptime(due_date, '%Y-%m-%d') < datetime.now():
+        record_ref = db.collection('users').document(user_id).collection('records').document()
+        record_ref.set({
+            'Date': due_date,
+            'type': 'debit',
+            'amount': amount
+            'reason': bill_name,
+            'description': "Automatically generated  record for bill: " + bill_name
+        })
 
+def send_email(username, email, password, totp_secret):
+    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+
+    creds = None
+
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json')
+
+    if not creds or not 
 
 class User(UserMixin):
     def __init__(self, user_id):
@@ -103,3 +122,39 @@ def login():
             user = User(user_id=username)
             login_user(user)
             return redirect(url_for('dashboard'))
+        else:
+            return "Invalid OTP"
+    return render_template('login.html')
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        new_password = request.form['new_password']
+
+        user_ref = db.collection('users').document(username)
+        user_doc = user_ref.get()
+
+        totp_secret = user_doc.to_dict()['totp_secret']
+
+        if user_doc.exists:
+            if user_doc.to_dict()['email'] == email:
+                if totp_verify(request.form['totp'], totp_secret):
+                    user_ref.update({
+                        'password': base64.b64encode(new_password.encode('utf-8'))
+                    })
+                    return redirect(url_for('login'))
+                else:
+                    return "Invalid OTP"
+            else:
+                return "Invalid Email Address"
+        else:
+            return 'No User Found With Provided Username'
+    return render_template('forgotpassword.html')
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+

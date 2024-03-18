@@ -29,6 +29,16 @@ cred = credentials.Certificate(os.path.join(os.path.dirname(__file__),'db.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+
+class User(UserMixin):
+    def __init__(self, user_id):
+        self.id = user_id
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
+
 def prayatna_api_hit():
     url = 'http://13.48.136.54:8000/api/api-code/'
     api = "6e115e80-aff0-4174-9222-e5a7a37ce35b"
@@ -48,7 +58,7 @@ def add_record(user_id, bill_name, due_date, amount):
         record_ref.set({
             'Date': due_date,
             'type': 'debit',
-            'amount': amount
+            'amount': amount,
             'reason': bill_name,
             'description': "Automatically generated  record for bill: " + bill_name
         })
@@ -60,18 +70,28 @@ def send_email(username, email, password, totp_secret):
 
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json')
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('mail.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+    service = build('gmail', 'v1', credentials=creds)
 
-    if not creds or not 
+    google_authy = "https://play.google.copm/store/apps/details?id=com.google.android.apps.authenticator2&hl=eng&gl=US"
 
-class User(UserMixin):
-    def __init__(self, user_id):
-        self.id = user_id
+    message = MIMEMultipart()
+    message['to'] = email
+    message['subject'] = 'Registration Details'
+    email_body = f"Here Are Your Detailsfor the app, Keep them Safely: \nUsername: {username} \nEmail: {email} \nPassword: {password} \nTOTP Secret: {totp_secret} \n Use The above TOTP Secret with a Authenticator app like {google_authy}. IF this secret gets lost, You'll Lose Your 'Account'. "
+    message.attach(MIMEText(email_body, 'plain'))
 
+    raw_message = base64.urlsafe_b64encode(message.as_bytes())
+    raw_message = raw_message.decode()
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User(user_id)
-
+    service.users().messages().send(userId='me', body = {'raw': raw_message}).execute()
 
 def totp_verify(otp, totp_secret):
     totp = pyotp.TOTP(totp_secret)
@@ -106,7 +126,7 @@ def register():
                 'username': username,
                 'email': email,
                 'password': pass64,
-                'bank_balance': bank_balance
+                'bank_balance': bank_balance,
                 'totp_secret': totp_secret
             })
 
@@ -175,4 +195,5 @@ def forgot_password():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
 

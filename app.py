@@ -2,6 +2,7 @@ import os
 import base64
 import re
 import webview
+import requests
 import pyotp
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -27,6 +28,19 @@ login_required.init_app(app)
 cred = credentials.Certificate(os.path.join(os.path.dirname(__file__),'db.json'))
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+
+def prayatna_api_hit():
+    url = 'http://13.48.136.54:8000/api/api-code/'
+    api = "6e115e80-aff0-4174-9222-e5a7a37ce35b"
+    bearer = "Bearer " + api
+
+    headers = {"Authorization": bearer,
+            'Content-Type': 'application/json'}
+    
+    response = requests.post(url, headers=headers)
+    cont = response.content
+
+    return cont
 
 def add_record(user_id, bill_name, due_date, amount):
     if datetime.strptime(due_date, '%Y-%m-%d') < datetime.now():
@@ -65,11 +79,13 @@ def totp_verify(otp, totp_secret):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    access = prayatna_api_hit()
+    return render_template('index.html', access)
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    access = prayatna_api_hit()
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
@@ -100,10 +116,11 @@ def register():
         else:
             return "Passwords Do Not Match, Please Try Again"
         
-    return render_template('register.html')
+    return render_template('register.html', access)
     
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    access = prayatna_api_hit()
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -124,10 +141,11 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             return "Invalid OTP"
-    return render_template('login.html')
+    return render_template('login.html', access)
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
+    access = prayatna_api_hit()
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
@@ -151,7 +169,7 @@ def forgot_password():
                 return "Invalid Email Address"
         else:
             return 'No User Found With Provided Username'
-    return render_template('forgotpassword.html')
+    return render_template('forgotpassword.html', access)
 
 @app.route('/logout')
 def logout():

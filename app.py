@@ -296,6 +296,64 @@ def dashboard():
     
     return render_template('dashboard.html', records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses) 
 
+@app.route('/verifypass', methods=['GET', 'POST'])
+@login_required
+def verifypass():
+    if request.method == 'POST':
+        user_id = current_user.id
+
+        password = request.form['password']
+        pass64 = base64.b64encode(password.encode('utf-8'))
+        
+        user_ref = db.collection('users').document(user_id)
+        totp_secret = user_ref.get().to_dict()['totp_secred']
+        user_pass  = user_ref.get().to_dict()['password']
+
+        if pass64 == user_pass:
+            return totp_secret
+        else:
+            return "Invalid password"
+    return render_template('dashboard.html')
+
+@app.route('/add_entry', methods=['POST'])
+@login_required
+def add_entry():
+    user_id = current_user.id
+    date = request.form['date']
+    entry_type = request.form['type']
+    amount = float(request.form['amount'])
+    reason = request.form['reason']
+    description = request.form['description']
+    current_time = datetime.now().strftime('%H-%M-%S')
+
+    doc_name = date + "-" + current_time + '-' + entry_type.upper() + '-' + reason.upper()
+
+    record_ref = db.collection('users').document(user_id).collection('records').document(doc_name)
+    record_ref.set({
+        'Date': date,
+        'time': current_time,
+        'type': type,
+        'amount': amount,
+        'reason': reason,
+        'description': description
+    })
+
+    balance_ref = db.collection('users').document(user_id)
+    balance = balance_ref.get().to_dict()['bank_balance']
+    if entry_type == 'credit':
+        new_balance = balance+amount
+    else:
+        new_balance = balance-amount
+
+    balance_ref.update({
+        'bank_balance':  new_balance
+    })
+    return redirect(url_for('dashboard'))
+
+
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

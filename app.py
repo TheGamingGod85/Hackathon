@@ -351,7 +351,76 @@ def add_entry():
     return redirect(url_for('dashboard'))
 
 
+@app.route('/delete_record/<record_id>', methods=['POST'])
+@login_required
+def delete_record(record_id):
+    user_id = current_user.id
+    record_ref = db.collection('users').document(user_id).collection('records').document(record_id)
+    record = record_ref.get().to_dict()
+    amount = float(record['amount'])
+    entry_type = record["type"]
 
+    record_ref.delete()
+
+    balance_ref = db.collection('users').document(user_id)
+    balance = balance_ref.get().to_dict()['bank_balance']
+    if entry_type == "credit":
+        new_balance = balance-amount
+    else:
+        new_balance = balance+amount
+
+    balance_ref.update({
+        'bank_balance': new_balance
+    })
+
+    return redirect(url_for('dashboard'))
+
+@app.route('/set_bill_reminder', methods=['POST'])
+@login_required
+def set_bill_reminder():
+    user_id = current_user.id
+    bill_name = request.form['bill_name']
+    due_date_str = request.form['due_date']
+    recurrence = request.form['recurrence']
+    amount = float(request.form['amount'])
+
+    balance_ref = db.collection('users').document(user_id)
+    balance = balance_ref.get().to_dict()['bank_balance']
+
+    if balance >= amount:
+        reminder_ref = db.collection('users').document(user_id).collection('bill_reminders').document(bill_name)
+
+        reminder_ref.set({
+            'bill_name': bill_name,
+            'amount': amount,
+            'due_date': due_date_str,
+            'recurrence': recurrence
+        })
+
+        due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+
+        if due_date < datetime.now():   
+            if recurrence == 'daily':   
+                delta = timedelta(days=1)   
+            elif recurrence == 'weekly':    
+                delta = timedelta(weeks=1)  
+            elif recurrence == 'monthly':   
+                delta = timedelta(days=30)   
+            else:   
+                delta = None
+            
+            if delta:
+                while due_date < datetime.now():
+                    due_date += delta
+        
+        new_due_date_str = due_date.strftime('%Y-%m-%d')
+        reminder_ref.update({
+            'due_date': new_due_date_str
+        })
+
+        add_record(user_id, bill_name, new_due_date_str, amount)
+
+        return redirect(url_for('dashboard'))
 
 
 

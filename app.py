@@ -196,5 +196,79 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required 
+def dashboard():
+    
+    user_id = current_user.id
+    records_ref = db.collection('users').document(user_id).collection('records')    
+    records = records_ref.get()
+
+    earnings = 0.0  
+    expenses = 0.0  
+    for record in records:  
+        record_data = record.to_dict()
+        if record_data['Date']: 
+            if record_data['type'] == 'credit':   
+                earnings += float(record_data['amount'])    
+            elif record_data['type'] == 'debit':    
+                expenses += float(record_data['amount'])    
+    reminders_ref = db.collection('users').document(user_id).collection('bill_reminders').get()
+    reminders = [reminder.to_dict() for reminder in reminders_ref]
+
+    
+    for reminder in reminders:  
+        due_date_str = reminder['due_date'] 
+        due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+        recurrence = reminder['recurrence']
+        
+        if due_date < datetime.now():   
+            if recurrence == 'daily':   
+                delta = timedelta(days=1)   
+            elif recurrence == 'weekly':    
+                delta = timedelta(weeks=1)  
+            elif recurrence == 'monthly':   
+                delta = timedelta(days=30)   
+            else:   
+                delta = None    
+            
+            if delta:   
+                while due_date < datetime.now():
+                    due_date += delta   
+                reminder_ref = db.collection('users').document(user_id).collection('bill_reminders').document(reminder['bill_name'])
+                reminder_ref.update({'due_date': due_date.strftime('%Y-%m-%d')})    
+
+    goals_ref = db.collection('users').document(user_id).collection('goals').get()
+    goals = [goal.to_dict() for goal in goals_ref]  
+
+    balance_ref = db.collection('users').document(user_id)  
+    current_balance = balance_ref.get().to_dict().get('bank_balance', 0)    
+
+    if goals_ref != []: 
+        earnings_goal = 0.0 
+        expenses_goal = 0.0 
+        for record in records:  
+            record_data = record.to_dict()
+            if record_data['Date']: 
+                if record_data['type'] == 'credit':
+                    earnings_goal += float(record_data['amount'])
+                elif record_data['type'] == 'debit':
+                    expenses_goal += float(record_data['amount'])
+        
+        goal_ref = db.collection('users').document(user_id).collection('goals').get()   
+        for goal in goal_ref:   
+            goal_data = goal.to_dict()  
+            if goal_data['target_amount']:  
+                goals_doc = float(goal_data['target_amount'])
+                remaining_goal = goals_doc - current_balance if goals_doc is not None else None
+    else:   
+        remaining_goal = None   
+        earnings_goal = None    
+        expenses_goal = None    
+
+    
+    return render_template('dashboard.html', records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses) 
+
+
 if __name__ == "__main__":
     app.run(debug=True)

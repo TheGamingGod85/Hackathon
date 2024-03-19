@@ -464,3 +464,15 @@ p {
 .button-totp:hover {
     background-color: #0099f8;
 }
+
+
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    padding: 10px;
+    width: 100%;
+    background-color: rgb(213, 213, 213);
+    color: rgb(0, 0, 0);
+    text-align: center;
+  }

@@ -308,7 +308,7 @@ def verifypass():
         pass64 = base64.b64encode(password.encode('utf-8'))
         
         user_ref = db.collection('users').document(user_id)
-        totp_secret = user_ref.get().to_dict()['totp_secred']
+        totp_secret = user_ref.get().to_dict()['totp_secret']
         user_pass  = user_ref.get().to_dict()['password']
 
         if pass64 == user_pass:

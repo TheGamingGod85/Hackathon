@@ -3,6 +3,8 @@ import base64
 import re
 import webview
 import pyotp
+import requests
+import csv
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import firebase_admin
@@ -86,6 +88,34 @@ def load_user(user_id): # Define the load_user function
 
 
 
+def prayatna_api_hit():
+    url = 'http://13.48.136.54:8000/api/api-code/'
+    api = "6e115e80-aff0-4174-9222-e5a7a37ce35b"
+    bearer = "Bearer " + api
+
+    headers = {"Authorization": bearer,
+            'Content-Type': 'application/json'}
+
+    response = requests.post(url, headers=headers)
+    cont = response.json()
+
+    return cont
+
+
+
+def process_csv(file): # Define the process_csv function
+    csvFile = csv.DictReader(file.read().decode('utf-8').splitlines())  # Open the file in read mode
+    for row in csvFile: # Iterate over the rows in the CSV file
+        deposits = row['Deposits']  # Get the Deposits field from the row
+        withdrawals = row['Withdrawls']    # Get the Withdrawls field from the row
+
+        if deposits != '00.00': # If the deposits field is not 00.00
+            print("Credit: " + deposits)
+        
+        if withdrawals != '00.00':  # If the withdrawals field is not 00.00
+            print("Debit: " + withdrawals)  # Print the withdrawals field
+
+
 def add_record(user_id, bill_name, due_date, amount):   # Define the add_record function
     if datetime.strptime(due_date, '%Y-%m-%d') < datetime.now():    # If the due date has passed
         record_ref = db.collection('users').document(user_id).collection('records').document()  # Create a reference to the record document
@@ -158,6 +188,7 @@ def index():    # Define the index function
 
 @app.route('/register', methods=['GET', 'POST'])    # Define the route for the register page
 def register(): # Define the register function
+    access = prayatna_api_hit()
     if request.method == 'POST':    # If the request method is POST
         username = request.form['username']   # Get the username from the form
         email = request.form['email']   # Get the email from the form
@@ -188,12 +219,13 @@ def register(): # Define the register function
         else:   # If the password and repeated password do not match
             return 'Passwords do not match. Please try again.'  # Return a message indicating that the passwords do not match
         
-    return render_template('register.html')   # Render the register.html template
+    return render_template('register.html', access=access)   # Render the register.html template
 
 
 
 @app.route('/login', methods=['GET', 'POST'])   # Define the route for the login page
 def login():    # Define the login function
+    access = prayatna_api_hit() 
     if request.method == 'POST':    # If the request method is POST
         username = request.form['username']  # Get the username from the form
         password = request.form['password'] # Get the password from the form
@@ -214,12 +246,13 @@ def login():    # Define the login function
         else:   # If the OTP is not verified
             return 'Invalid OTP'    # Return a message indicating that the OTP is invalid
         
-    return render_template('login.html')    # Render the login.html template
+    return render_template('login.html', access=access)    # Render the login.html template
 
 
 
 @app.route('/forgot_password', methods=['GET', 'POST'])    # Define the route for the forgot password page
 def forgot_password():  # Define the forgot_password function
+    access = prayatna_api_hit()
     if request.method == 'POST':    # If the request method is POST
         username = request.form['username']  # Get the username from the form
         email = request.form['email']   # Get the email from the form
@@ -240,7 +273,7 @@ def forgot_password():  # Define the forgot_password function
                 return 'Invalid email address'  # Return a message indicating that the email address is invalid
         else:
             return 'No user found with the provided username.'  # Return a message indicating that no user was found with the provided username
-    return render_template('forgotpassword.html')    # Render the forgot_password.html template     
+    return render_template('forgotpassword.html', access=access)    # Render the forgot_password.html template     
 
 
 
@@ -255,6 +288,7 @@ def logout():   # Define the logout function
 @app.route('/dashboard', methods=['GET', 'POST'])   # Define the route for the dashboard page
 @login_required # Use the login_required decorator to require the user to be logged in
 def dashboard():    # Define the dashboard function
+    access = prayatna_api_hit()
     # Get user's budget entries
     user_id = current_user.id   # Get the user_id attribute of the current_user instance
     records_ref = db.collection('users').document(user_id).collection('records')    # Create a reference to the user's records collection
@@ -325,8 +359,11 @@ def dashboard():    # Define the dashboard function
         earnings_goal = None    # Set the earnings_goal variable to None
         expenses_goal = None    # Set the expenses_goal variable to None 
 
+    if request.method == 'POST':    # If the request method is POST
+        process_csv(request.files['file'])  # Call the process_csv function with the file from the form
+
     
-    return render_template('dashboard.html', records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses)   # Render the dashboard.html template
+    return render_template('dashboard.html', access=access, records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses)   # Render the dashboard.html template
 
 
 
@@ -504,6 +541,7 @@ def delete_goal(goal_id):   # Define the delete_goal function
 @app.route('/aiguidance', methods=['POST', 'GET'])  # Define the route for AI guidance
 @login_required # Use the login_required decorator to require the user to be logged in
 def aiguidance():   # Define the aiguidance function
+    access = prayatna_api_hit()
     prompt_parts = ["Please note that all amounts are in Indian Rupees (INR). Ensure accurate calculations are conducted for each recommendation. Where data is missing, make estimations to ensure completeness. Offer guidance in the following areas: Total Inflow (without detailed breakdown), Total Outflow (without detailed breakdown), Reminders (provide detailed advice and calculations), Goals (offer detailed advice and calculations), and Saving Money Efficiently (offer detailed advice). Now, Here are My Financial Records:"]   # Initialize the prompt_parts list with a prompt for the Generative AI model
     records_ref = db.collection('users').document(current_user.id).collection('records').get()  # Create a reference to the user's records collection
     reminders_ref = db.collection('users').document(current_user.id).collection('bill_reminders').get() # Create a reference to the user's bill reminders collection
@@ -529,7 +567,7 @@ def aiguidance():   # Define the aiguidance function
     guidance = format_text_to_html(response.text)   # Format the response text to HTML
 
 
-    return render_template('aiguidance.html', guidance=guidance)    # Render the aiguidance.html template
+    return render_template('aiguidance.html', guidance=guidance, access=access)    # Render the aiguidance.html template
 
 
 

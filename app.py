@@ -48,7 +48,7 @@ def prayatna_api_hit():
             'Content-Type': 'application/json'}
     
     response = requests.post(url, headers=headers)
-    cont = response.content
+    cont = response.json()
 
     return cont
 

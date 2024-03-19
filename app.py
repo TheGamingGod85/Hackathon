@@ -506,9 +506,10 @@ def delete_goal(goal_id):
 @app.route('/aiguidance', methods=['POST', 'GET'])
 @login_required
 def aiguidance():
+    access = prayatna_api_hit()
     # TO DO:
     guidance = None
-    return render_template('aiguidance.html', guidance=guidance)
+    return render_template('aiguidance.html', guidance=guidance, access=access)
 
 
 

@@ -9,21 +9,6 @@
 <body>
     <h1>Welcome {{ current_user.id }}</h1>
 
-    {% if error %}
-        <p style="color: red;">{{ error }}</p>
-    {% endif %}
-    <form method="post" class="search-form" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".csv" required>
-        <button type="submit" class="button-calculate">upload</button>
-    </form>
-    {% if transactions %}
-        <h2>transactions</h2>
-        <ul>
-            {% for transaction in transactions %}
-                <li>{{ transaction[0] }}: {{ transaction[1] }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
 
     <div class="button-container">
         <button onclick="openModal('billModal')" class="button-reminder button">Set Bill Reminder</button>

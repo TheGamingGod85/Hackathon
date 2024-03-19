@@ -127,7 +127,7 @@ model = genai.GenerativeModel(model_name="gemini-1.0-pro-001", generation_config
 @app.route('/')
 def index():
     access = prayatna_api_hit()
-    return render_template('index.html', access)
+    return render_template('index.html', access=access)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -163,7 +163,7 @@ def register():
         else:
             return "Passwords Do Not Match, Please Try Again"
         
-    return render_template('register.html', access)
+    return render_template('register.html', access=access)
     
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -216,7 +216,7 @@ def forgot_password():
                 return "Invalid Email Address"
         else:
             return 'No User Found With Provided Username'
-    return render_template('forgotpassword.html', access)
+    return render_template('forgotpassword.html', access=access)
 
 @app.route('/logout')
 def logout():
@@ -293,8 +293,10 @@ def dashboard():
         earnings_goal = None    
         expenses_goal = None    
 
+    access = prayatna_api_hit()
+
     
-    return render_template('dashboard.html', records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses) 
+    return render_template('dashboard.html', records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses, access=access) 
 
 @app.route('/verifypass', methods=['GET', 'POST'])
 @login_required

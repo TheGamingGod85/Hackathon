@@ -17,17 +17,26 @@ from googleapiclient.discovery import build
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+
+
 app = Flask(__name__)
 app.secret_key = "5#v:O(TMlwMv17sPT6Hh-.b+U}80jGt~MWEJnBWg8a/~.7QdXWO%`P5cYgCk-ci"
 
+
+
 window = webview.create_window("Quad Binary Wealth AI", app)
+
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+
+
 cred = credentials.Certificate(os.path.join(os.path.dirname(__file__),'db.json'))
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+
 
 
 class User(UserMixin):
@@ -35,9 +44,12 @@ class User(UserMixin):
         self.id = user_id
 
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User(user_id)
+
+
 
 def prayatna_api_hit():
     url = 'http://13.48.136.54:8000/api/api-code/'
@@ -52,6 +64,8 @@ def prayatna_api_hit():
 
     return cont
 
+
+
 def add_record(user_id, bill_name, due_date, amount):
     if datetime.strptime(due_date, '%Y-%m-%d') < datetime.now():
         record_ref = db.collection('users').document(user_id).collection('records').document()
@@ -62,6 +76,8 @@ def add_record(user_id, bill_name, due_date, amount):
             'reason': bill_name,
             'description': "Automatically generated  record for bill: " + bill_name
         })
+
+
 
 def send_email(username, email, password, totp_secret):
     SCOPES = ['https://www.googleapis.com/auth/gmail.send']
@@ -93,9 +109,13 @@ def send_email(username, email, password, totp_secret):
 
     service.users().messages().send(userId='me', body = {'raw': raw_message}).execute()
 
+
+
 def totp_verify(otp, totp_secret):
     totp = pyotp.TOTP(totp_secret)
     return totp.verify(otp)
+
+
 
 genai.configure(api_key="AIzaSyB5b3yOq6uW3V32P5WeCEDuU-KSGP1hfbU")  # Set the API key for the Generative AI service
 generation_config = {
@@ -124,10 +144,13 @@ safety_settings = [
 ]
 model = genai.GenerativeModel(model_name="gemini-1.0-pro-001", generation_config=generation_config, safety_settings=safety_settings)
 
+
+
 @app.route('/')
 def index():
     access = prayatna_api_hit()
     return render_template('index.html', access=access)
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -164,7 +187,9 @@ def register():
             return "Passwords Do Not Match, Please Try Again"
         
     return render_template('register.html', access=access)
-    
+
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     access = prayatna_api_hit()
@@ -189,6 +214,8 @@ def login():
         else:
             return "Invalid OTP"
     return render_template('login.html', access=access)
+
+
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -218,10 +245,35 @@ def forgot_password():
             return 'No User Found With Provided Username'
     return render_template('forgotpassword.html', access=access)
 
+
+
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+
+
+@app.route('/verifypass', methods=['GET', 'POST'])
+@login_required
+def verifypass():
+    if request.method == 'POST':
+        user_id = current_user.id
+
+        password = request.form['password']
+        pass64 = base64.b64encode(password.encode('utf-8'))
+        
+        user_ref = db.collection('users').document(user_id)
+        totp_secret = user_ref.get().to_dict()['totp_secret']
+        user_pass  = user_ref.get().to_dict()['password']
+
+        if pass64 == user_pass:
+            return totp_secret
+        else:
+            return "Invalid password"
+    return render_template('dashboard.html')
+
+
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required 
@@ -298,24 +350,7 @@ def dashboard():
     
     return render_template('dashboard.html', records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses, access=access) 
 
-@app.route('/verifypass', methods=['GET', 'POST'])
-@login_required
-def verifypass():
-    if request.method == 'POST':
-        user_id = current_user.id
 
-        password = request.form['password']
-        pass64 = base64.b64encode(password.encode('utf-8'))
-        
-        user_ref = db.collection('users').document(user_id)
-        totp_secret = user_ref.get().to_dict()['totp_secret']
-        user_pass  = user_ref.get().to_dict()['password']
-
-        if pass64 == user_pass:
-            return totp_secret
-        else:
-            return "Invalid password"
-    return render_template('dashboard.html')
 
 @app.route('/add_entry', methods=['POST'])
 @login_required
@@ -353,6 +388,7 @@ def add_entry():
     return redirect(url_for('dashboard'))
 
 
+
 @app.route('/delete_record/<record_id>', methods=['POST'])
 @login_required
 def delete_record(record_id):
@@ -376,6 +412,8 @@ def delete_record(record_id):
     })
 
     return redirect(url_for('dashboard'))
+
+
 
 @app.route('/set_bill_reminder', methods=['POST'])
 @login_required
@@ -422,9 +460,59 @@ def set_bill_reminder():
 
         add_record(user_id, bill_name, new_due_date_str, amount)
 
-        return redirect(url_for('dashboard'))
+    return redirect(url_for('dashboard'))
+
+
+
+@app.route('/delete_bill_reminder/<reminder_id>', methods=['POST']) 
+@login_required 
+def delete_bill_reminder(reminder_id):  
+    user_id = current_user.id   
+    reminder_ref = db.collection('users').document(user_id).collection('bill_reminders').document(reminder_id)  
+    reminder_ref.delete()   
+    return redirect(url_for('dashboard'))   
+
+
+
+@app.route('/set_goal', methods=['POST'])   
+@login_required 
+def set_goal(): 
+    user_id = current_user.id   
+    goal_name = request.form['goal_name']   
+    target_amount = float(request.form['target_amount'])   
+    time = float(request.form['time_goal'])    
+    
+    goal_ref = db.collection('users').document(user_id).collection('goals').document(goal_name)   
+    goal_ref.set({
+        'goal_name': goal_name,
+        'target_amount': target_amount,
+        'time': time
+    })  
+    
+    return redirect(url_for('dashboard'))   
+
+
+
+@app.route('/delete_goal/<goal_id>', methods=['POST'])  
+@login_required 
+def delete_goal(goal_id):   
+    user_id = current_user.id   
+    goal_ref = db.collection('users').document(user_id).collection('goals').document(goal_id)   
+    goal_ref.delete()   
+    return redirect(url_for('dashboard'))  
+
+
+
+@app.route('/aiguidance', methods=['POST', 'GET'])
+@login_required
+def aiguidance():
+    # TO DO:
+    guidance = None
+    return render_template('aiguidance.html', guidance=guidance)
 
 
 
 if __name__ == "__main__":
     app.run(debug=True)
+    webview.start()
+    app.run(host='0.0.0.0', port=5000)

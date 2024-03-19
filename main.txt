@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+import 'package:sms/sms.dart';
+import 'package:http/http.dart' as http;
+import 'package:googleapis/sheets/v4.dart';
+import 'package:googleapis_auth/auth_io.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'SMS to Google Sheets',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: MyHomePage(),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  final _smsController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _autoReadSMS(); // Call auto read SMS function
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('SMS to Google Sheets'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            TextField(
+              controller: _smsController,
+              decoration: InputDecoration(
+                hintText: 'Enter SMS here',
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _sendSMSToGoogleSheet,
+              child: Text('Send SMS to Google Sheet'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _autoReadSMS() async {
+    final SmsQuery query = SmsQuery();
+    List<SmsMessage> messages = await query.getAllSms;
+
+    // Filter bank transaction messages
+    List<String> bankTransactionMessages = messages
+        .where((message) =>
+            message.body.contains('transaction') &&
+            message.body.contains('bank'))
+        .map((message) => message.body)
+        .toList();
+
+    // Print bank transaction messages to console
+    bankTransactionMessages.forEach((message) => print(message));
+  }
+
+  Future<void> _sendSMSToGoogleSheet() async {
+    // Replace placeholders with your actual Google Sheets API credentials
+    final _credentials = ServiceAccountCredentials.fromJson({
+      "private_key": "YOUR_PRIVATE_KEY",
+      "client_email": "YOUR_CLIENT_EMAIL",
+    });
+
+    // Initialize Google Sheets API client
+    final client = await clientViaServiceAccount(_credentials, [
+      'https://www.googleapis.com/auth/spreadsheets',
+    ]);
+
+    // Replace with your Google Sheets spreadsheet ID and range
+    final spreadsheetId = 'YOUR_SPREADSHEET_ID';
+    final range = 'Sheet1!A1';
+
+    // Initialize Google Sheets API service
+    final sheets = SheetsApi(client);
+
+    // Prepare data to write to Google Sheet
+    final data = ValueRange.fromJson({
+      "values": [
+        [_smsController.text], // Assuming you want to write the SMS text
+      ]
+    });
+
+    // Write data to Google Sheet
+    await sheets.spreadsheets.values.update(data, spreadsheetId, range,
+        valueInputOption: 'RAW');
+  }
+}

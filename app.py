@@ -352,40 +352,38 @@ def dashboard():
 
 
 
-@app.route('/add_entry', methods=['POST'])
-@login_required
-def add_entry():
-    user_id = current_user.id
-    date = request.form['date']
-    entry_type = request.form['type']
-    amount = float(request.form['amount'])
-    reason = request.form['reason']
-    description = request.form['description']
-    current_time = datetime.now().strftime('%H-%M-%S')
-
-    doc_name = date + "-" + current_time + '-' + entry_type.upper() + '-' + reason.upper()
-
-    record_ref = db.collection('users').document(user_id).collection('records').document(doc_name)
+@app.route('/add_entry', methods=['POST'])  
+@login_required 
+def add_entry():    
+    user_id = current_user.id   
+    date = request.form['date'] 
+    entry_type = request.form['type']   
+    amount = float(request.form['amount'])  
+    reason = request.form['reason'] 
+    description = request.form['description']   
+    current_time = datetime.now().strftime('%H:%M:%S') 
+    doc_name = date + '_' + current_time + '_' + entry_type.upper() + '_' + reason.upper()  
+    record_ref = db.collection('users').document(user_id).collection('records').document(doc_name)  
     record_ref.set({
         'Date': date,
         'time': current_time,
-        'type': type,
+        'type': entry_type,
         'amount': amount,
         'reason': reason,
         'description': description
-    })
+    })  
 
-    balance_ref = db.collection('users').document(user_id)
-    balance = balance_ref.get().to_dict()['bank_balance']
-    if entry_type == 'credit':
-        new_balance = balance+amount
-    else:
-        new_balance = balance-amount
+    
+    balance_ref = db.collection('users').document(user_id)  
+    balance = balance_ref.get().to_dict()['bank_balance']   
+    if entry_type == 'credit':  
+        new_balance = balance + amount  
+    else:   
+        new_balance = balance - amount  
+    balance_ref.update({'bank_balance': new_balance})   
 
-    balance_ref.update({
-        'bank_balance':  new_balance
-    })
-    return redirect(url_for('dashboard'))
+
+    return redirect(url_for('dashboard'))   
 
 
 
@@ -514,6 +512,6 @@ def aiguidance():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
-    webview.start()
+    # app.run(debug=True)
+    # webview.start()
     app.run(host='0.0.0.0', port=5000)

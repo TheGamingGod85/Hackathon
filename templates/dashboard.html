@@ -7,7 +7,7 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Welcome, {{ current_user.id }} To QuadWealth AI</h1>
+    <h1>Welcome {{ current_user.id }}</h1>
     <div class="button-container">
         <button onclick="openModal('billModal')" class="button-reminder button">Set Bill Reminder</button>
         <button onclick="openModal('goalModal')" class=" button-goal button">Set Financial Goal</button>
@@ -44,7 +44,7 @@
                 
                 <label for="due_date">Due Date:</label>
                 <input type="date" id="due_date" name="due_date" required>
-    
+                <br><br>
                 <label for="recurrence">Recurrence:</label>
                 <select id="recurrence" name="recurrence">
                     <option value="daily">Daily</option>
@@ -68,9 +68,9 @@
                 <label for="goal_name">Goal Name:</label>
                 <input type="text" id="goal_name" name="goal_name" required>
                 <label for="target_amount">Target Amount:</label>
-                <input type="number" id="target_amount" name="target_amount" required>
-                <label for="earnings_goal">Time Frame (Years)</label>
-                <input type="number" id="time_goal" name="time_goal" required>
+                <input type="number" id="target_amount" name="target_amount" required><br><br>
+                <label for="earnings_goal">Time Frame (Years):</label>
+                <input type="number" id="time_goal" name="time_goal" required><br><br>
                 <button type="submit" class="button-submit">Set Goal</button>
             </form>
         </div>
@@ -101,6 +101,7 @@
                         <option value="vehicle">Vehicle & Fuel</option>
                         <option value="other">Other</option>
                     </select>
+                    <br><br>
                     <label for="amount">Amount:</label>
                     <input type="number" id="amount" name="amount" required>
                     <div style="padding: 25px;">

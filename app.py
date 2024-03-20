@@ -200,8 +200,9 @@ def register(): # Define the register function
         
         # Check if passwords match
         if password == password_confirm:    # If the password and repeated password match
-            if db.collection('users').document(username).get().exists:  # If a user document with the username already exists
-                return 'Username already taken. Please choose another username.'    # Return a message indicating that the username is already taken
+            if db.collection('users').document(username).get().exists:  # If a user document with the username already exists # Return a message indicating that the username is already taken
+                error = "Username already taken. Please choose another username."   # If user document does not exist or password is incorrect
+                return redirect(url_for('login') + '?error=' + error)
             
             # Create new user document
             user_ref = db.collection('users').document(username)    # Create a reference to the user document
@@ -217,7 +218,8 @@ def register(): # Define the register function
 
             return redirect(url_for('index'))   # Redirect to the index page
         else:   # If the password and repeated password do not match
-            return 'Passwords do not match. Please try again.'  # Return a message indicating that the passwords do not match
+            error = "Passwords do not match. Please try again."   # If user document does not exist or password is incorrect
+            return redirect(url_for('register') + '?error=' + error)
         
     return render_template('register.html', access=access)   # Render the register.html template
 
@@ -235,7 +237,8 @@ def login():    # Define the login function
         user_doc = user_ref.get()   # Get the user document
         
         if not user_doc.exists or user_doc.to_dict()['password'] != pass64: # If the user document does not exist or the password is incorrect
-            return 'Invalid username or password'   # Return a message indicating that the username or password is invalid
+            error = "Invalid Username or Password"   # If user document does not exist or password is incorrect
+            return redirect(url_for('login') + '?error=' + error)   # Return a message indicating that the username or password is invalid
         
         totp_secret = user_doc.to_dict()['totp_secret']  # Get the totp_secret field from the user document
         if totp_verify(request.form['totp'], totp_secret):  # If the OTP is verified
@@ -243,8 +246,9 @@ def login():    # Define the login function
             user = User(user_id=username)  # Assuming User class expects user_id in its constructor
             login_user(user)    # Log the user in
             return redirect(url_for('dashboard'))   # Redirect to the dashboard page
-        else:   # If the OTP is not verified
-            return 'Invalid OTP'    # Return a message indicating that the OTP is invalid
+        else:   # If the OTP is not verified    # Return a message indicating that the OTP is invalid
+            error = "Invalid OTP"   # If user document does not exist or password is incorrect
+            return redirect(url_for('login') + '?error=' + error)
         
     return render_template('login.html', access=access)    # Render the login.html template
 
@@ -267,12 +271,15 @@ def forgot_password():  # Define the forgot_password function
                 if totp_verify(request.form['totp'], totp_secret):  # If the OTP is verified
                     user_ref.update({'password': base64.b64encode(new_password.encode("utf-8"))})  # Update the password field of the user document
                     return redirect(url_for('login'))   # Redirect to the login page
-                else:   # If the OTP is not verified
-                    return 'Invalid OTP'    # Return a message indicating that the OTP is invalid
+                else:   # If the OTP is not verified   # Return a message indicating that the OTP is invalid
+                    error = "Invalid OTP"   # If user document does not exist or password is incorrect
+                    return redirect(url_for('forgot_password') + '?error=' + error)
             else:
-                return 'Invalid email address'  # Return a message indicating that the email address is invalid
+                error = "Invalid Email Address"   # If user document does not exist or password is incorrect
+                return redirect(url_for('login') + '?error=' + error)   
         else:
-            return 'No user found with the provided username.'  # Return a message indicating that no user was found with the provided username
+            error = "No User Found with the provided useername"   # If user document does not exist or password is incorrect
+            return redirect(url_for('login') + '?error=' + error)
     return render_template('forgotpassword.html', access=access)    # Render the forgot_password.html template     
 
 
@@ -381,7 +388,8 @@ def verifypass():   # Define the verifypass function
         if pass64 == user_pass: # If the password is correct
             return totp_secret  # Return the totp_secret
         else:   # If the password is incorrect
-            return 'Invalid password'   # Return a message indicating that the password is invalid
+            error = "Invalid Password"   # If user document does not exist or password is incorrect
+            return redirect(url_for('dashboard') + '?error=' + error)   # Return a message indicating that the password is invalid
         
     return render_template('dashboard.html')    # Render the dashboard.html template
 
@@ -572,6 +580,6 @@ def aiguidance():   # Define the aiguidance function
 
 
 if __name__ == '__main__':  # If the script is executed
-    app.run(debug=True) # Run the app in debug mode
-    # webview.start()  # Start webview
+    # app.run(debug=True) # Run the app in debug mode
+    webview.start()  # Start webview
     # app.run(host='0.0.0.0', port=5000)  # Run the app on port 5000

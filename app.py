@@ -359,8 +359,8 @@ def dashboard():    # Define the dashboard function
         earnings_goal = None    # Set the earnings_goal variable to None
         expenses_goal = None    # Set the expenses_goal variable to None 
 
-    if request.method == 'POST':    # If the request method is POST
-        process_csv(request.files['file'])  # Call the process_csv function with the file from the form
+    # if request.method == 'POST':    # If the request method is POST
+        # process_csv(request.files['file'])  # Call the process_csv function with the file from the form
 
     
     return render_template('dashboard.html', access=access, records=records, reminders=reminders, goals=goals, remaining_goal=remaining_goal, earnings_goal=earnings_goal, expenses_goal=expenses_goal, current_balance=current_balance, earnings=earnings, expenses=expenses)   # Render the dashboard.html template

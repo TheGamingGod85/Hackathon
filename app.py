@@ -248,8 +248,7 @@ def login():    # Define the login function
             login_user(user)    # Log the user in
             return redirect(url_for('dashboard'))   # Redirect to the dashboard page
         else:   # If the OTP is not verified    # Return a message indicating that the OTP is invalid
-            error = "Invalid OTP"   # If user document does not exist or password is incorrect
-            return redirect(url_for('login') + '?error=' + error)
+            return "Invalid OTP"
         
     return render_template('login.html', access=access)    # Render the login.html template
 

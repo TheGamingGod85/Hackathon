@@ -182,7 +182,8 @@ def totp_verify(otp, totp_secret):  # Define the totp_verify function
 
 @app.route('/') # Define the route for the index page
 def index():    # Define the index function
-    return render_template('index.html')    # Render the index.html template
+    access = prayatna_api_hit()
+    return render_template('index.html', access=access)    # Render the index.html template
 
 
 
